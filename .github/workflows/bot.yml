@@ -1,0 +1,44 @@
+name: Monitor Diário Oficial
+
+on:
+  schedule:
+    # 1. Entre 7h e 9h55 (BRT), roda a cada 5 minutos (Segunda a Sexta)
+    - cron: '*/5 10-12 * * 1-5'
+    
+    # 2. Entre 16h e 18h55 (BRT), roda a cada 5 minutos (Segunda a Sexta)
+    - cron: '*/5 19-21 * * 1-5'
+    
+    # 3. Fora desses horários (e finais de semana), roda a cada 30 minutos
+    - cron: '*/30 * * * *'
+    
+  workflow_dispatch: # Permite rodar manualmente clicando em um botão
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar os arquivos do repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar o Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar bibliotecas
+        run: npm install
+
+      - name: Rodar o Bot
+        env:
+          TOKEN_TELEGRAM: ${{ secrets.TOKEN_TELEGRAM }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: node index.js
+
+      - name: Salvar novo arquivo JSON (se houver novidade)
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          git add ultimo_diario.json
+          git commit -m "🤖 Atualiza última edição do Diário Oficial" || echo "Sem mudanças"
+          git push
